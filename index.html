@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relativistic Space Travel</title>
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+<!-- ========== Top Navigation (persistent) ========== -->
+<nav class="top-nav">
+  <div class="nav-brand">Relativistic Space Travel</div>
+  <div class="nav-links">
+    <button class="nav-link" data-view="home">Home</button>
+    <button class="nav-link" data-view="space">Space View</button>
+    <button class="nav-link" data-view="data">Data</button>
+    <button class="nav-link" data-view="fuel">Fuel &amp; Ship</button>
+  </div>
+</nav>
+
+<!-- ========== HOME / LANDING MENU ========== -->
+<section class="view view-home" data-view="home">
+  <div class="home-hero">
+    <h1>How Time Bends When You Travel Near Light Speed</h1>
+    <p>Three ways to explore relativistic space travel. Pick one to begin.</p>
+  </div>
+  <div class="menu-cards">
+    <button class="menu-card" data-goto="space">
+      <div class="menu-card-icon">🚀</div>
+      <h2>Space View</h2>
+      <p>Watch a rocket accelerate, coast, and decelerate between locations on an interactive 2D map. Pan, zoom, switch perspective, and send light-speed messages.</p>
+    </button>
+    <button class="menu-card" data-goto="data">
+      <div class="menu-card-icon">📈</div>
+      <h2>Data Exploration</h2>
+      <p>Live graphs of the physics: spacetime worldlines, clock-dilation comparisons, and β/γ over time. Each chart shows the governing equation.</p>
+    </button>
+    <button class="menu-card" data-goto="fuel">
+      <div class="menu-card-icon">⛽</div>
+      <h2>Fuel &amp; Ship Design</h2>
+      <p>Given a distance, a target speed, and a propellant, how much fuel does an interstellar rocket actually need? (Spoiler: chemical rockets are hopeless.)</p>
+    </button>
+  </div>
+  <div class="home-footer">
+    Built with vanilla JS. Equations documented in <code>physics_reference.md</code>.
+  </div>
+</section>
+
+<!-- ========== SPACE VIEW ========== -->
+<section class="view view-space" data-view="space">
+<main class="app-main">
+
+  <section class="panel panel-space">
+    <div class="panel-header">
+      <h2>Space View</h2>
+      <div class="hint">scroll = zoom · drag = pan · click = select</div>
+    </div>
+    <canvas id="space-canvas"></canvas>
+    <div class="space-overlay">
+      <div id="selection-info" class="selection-info"></div>
+    </div>
+  </section>
+
+  <aside class="panel panel-controls">
+    <div class="panel-header"><h2>Controls</h2></div>
+
+    <div class="control-group">
+      <label>Perspective (whose frame are we playing?)</label>
+      <select id="perspective-select"></select>
+    </div>
+
+    <div class="playback-row">
+      <button id="play-btn" class="btn-primary">▶ Play</button>
+      <button id="reset-btn" class="btn-secondary">Reset</button>
+    </div>
+
+    <div class="control-group">
+      <label>Time <span id="time-readout" class="mono">0.00 yr</span></label>
+      <input id="time-slider" type="range" min="0" max="1" step="0.001" value="0">
+    </div>
+
+    <div class="control-group">
+      <label>Playback speed <span id="speed-readout" class="mono">1.0 yr/s</span></label>
+      <input id="speed-slider" type="range" min="0.05" max="5" step="0.05" value="1">
+    </div>
+
+    <hr class="divider">
+
+    <div class="control-group">
+      <label>Rocket acceleration <span id="accel-readout" class="mono">1.00 g</span></label>
+      <input id="accel-slider" type="range" min="0.1" max="10" step="0.1" value="1">
+    </div>
+
+    <div class="control-group">
+      <label>Trip profile</label>
+      <div class="radio-row">
+        <label class="radio-option"><input type="radio" name="profile" value="auto"> Auto</label>
+        <label class="radio-option"><input type="radio" name="profile" value="no-coast" checked> No coast</label>
+        <label class="radio-option"><input type="radio" name="profile" value="coast"> Coast</label>
+      </div>
+    </div>
+
+    <div class="control-group" id="cruise-group">
+      <label>Cruise speed (for coast) <span id="cruise-readout" class="mono">0.9990 c</span></label>
+      <input id="cruise-slider" type="range" min="0.1" max="0.99999" step="0.00001" value="0.999">
+    </div>
+
+    <div class="control-group">
+      <label>Propulsion</label>
+      <select id="rocket-propulsion"></select>
+    </div>
+
+    <div class="control-group">
+      <label>Ship dry mass <span id="rocket-drymass-readout" class="mono">100,000 kg</span></label>
+      <input id="rocket-drymass" type="range" min="1000" max="10000000" step="1000" value="100000">
+    </div>
+
+    <hr class="divider">
+
+    <div class="control-group">
+      <label>Scene</label>
+      <div class="btn-row">
+        <button id="add-location-btn" class="btn-secondary small">+ Location</button>
+        <button id="add-rocket-btn" class="btn-secondary small">+ Rocket</button>
+        <button id="send-message-btn" class="btn-secondary small">Send Msg</button>
+      </div>
+      <div class="btn-row">
+        <button id="fit-view-btn" class="btn-secondary small">Fit view</button>
+      </div>
+
+      <!-- Inline form: Add Location -->
+      <div id="form-add-location" class="inline-form" hidden>
+        <div class="inline-form-title">Add location</div>
+        <input id="loc-name" type="text" placeholder="Name">
+        <div class="form-row">
+          <input id="loc-x" type="number" step="any" placeholder="x (ly)">
+          <input id="loc-y" type="number" step="any" placeholder="y (ly)" value="0">
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary small" data-action="loc-submit">Add</button>
+          <button class="btn-secondary small" data-action="loc-cancel">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Inline form: Add Rocket -->
+      <div id="form-add-rocket" class="inline-form" hidden>
+        <div class="inline-form-title">Add rocket</div>
+        <input id="rkt-name" type="text" placeholder="Name">
+        <label class="inline-label">Origin</label>
+        <select id="rkt-origin"></select>
+        <label class="inline-label">Destination</label>
+        <select id="rkt-dest"></select>
+        <label class="inline-label">Launch time (yr, Earth frame)</label>
+        <input id="rkt-launch" type="number" step="0.01" value="0">
+        <div class="form-actions">
+          <button class="btn-primary small" data-action="rkt-submit">Add</button>
+          <button class="btn-secondary small" data-action="rkt-cancel">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Inline form: Send Message -->
+      <div id="form-send-msg" class="inline-form" hidden>
+        <div class="inline-form-title">Send message</div>
+        <label class="inline-label">From</label>
+        <select id="msg-from"></select>
+        <label class="inline-label">To (location)</label>
+        <select id="msg-to"></select>
+        <label class="inline-label">Emit time (yr, Earth frame)</label>
+        <input id="msg-emit" type="number" step="0.01" value="0">
+        <div class="form-actions">
+          <button class="btn-primary small" data-action="msg-submit">Send</button>
+          <button class="btn-secondary small" data-action="msg-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Objects</label>
+      <div id="object-list" class="object-list"></div>
+    </div>
+  </aside>
+
+</main>
+</section>
+
+<!-- ========== DATA EXPLORATION ========== -->
+<section class="view view-data" data-view="data">
+  <div class="data-intro">
+    <h1>Data Exploration</h1>
+    <p>Three charts updating live from the current scene. Change parameters in the Space View to see them respond here.</p>
+  </div>
+
+  <div class="graphs-grid graphs-grid-quad">
+
+    <div class="graph-card">
+      <div class="graph-header">
+        <h3>Fuel Remaining vs Perceived Time</h3>
+        <div id="fuel-graph-readout" class="graph-readout"></div>
+      </div>
+      <canvas class="graph-canvas graph-canvas-large" id="graph-fuel"></canvas>
+      <div class="equation">
+        m(τ) = M₀ · exp(−a·τ / v_ex)
+      </div>
+    </div>
+
+    <div class="graph-card">
+      <div class="graph-header">
+        <h3>Earth Time vs Perceived Time</h3>
+      </div>
+      <canvas class="graph-canvas graph-canvas-large" id="graph-timedilation"></canvas>
+      <div class="equation">
+        t = (c/a) · sinh(a·τ / c)
+      </div>
+    </div>
+
+    <div class="graph-card">
+      <div class="graph-header">
+        <h3>Distance from Earth vs Speed (β)</h3>
+      </div>
+      <canvas class="graph-canvas graph-canvas-large" id="graph-distspeed"></canvas>
+      <div class="equation">
+        γ(x) = 1 + a·x / c² &nbsp;·&nbsp; β = √(1 − 1/γ²)
+      </div>
+    </div>
+
+    <div class="graph-card">
+      <div class="graph-header">
+        <h3>Time Dilation (γ) vs Earth Time</h3>
+      </div>
+      <canvas class="graph-canvas graph-canvas-large" id="graph-gamma"></canvas>
+      <div class="equation">
+        γ(t) = √(1 + (a·t / c)²)
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========== FUEL & SHIP DESIGN ========== -->
+<section class="view view-fuel" data-view="fuel">
+  <div class="data-intro">
+    <h1>Fuel &amp; Ship Design</h1>
+    <p>How much fuel does an interstellar rocket actually need? The relativistic rocket equation
+       reveals why chemical propellants can't reach relativistic speeds, and why fusion or antimatter
+       is required for any realistic interstellar mission.</p>
+  </div>
+
+  <div class="fuel-layout">
+
+    <aside class="panel panel-fuel-inputs">
+      <div class="panel-header"><h2>Mission parameters</h2></div>
+
+      <div class="control-group">
+        <label>Distance <span id="fuel-dist-readout" class="mono">4.25 ly</span></label>
+        <input id="fuel-dist" type="range" min="0.01" max="100" step="0.01" value="4.25">
+      </div>
+
+      <div class="control-group">
+        <label>Peak velocity β <span id="fuel-beta-readout" class="mono">0.500 c</span></label>
+        <input id="fuel-beta" type="range" min="0.001" max="0.999" step="0.001" value="0.5">
+      </div>
+
+      <div class="control-group">
+        <label>Proper acceleration <span id="fuel-accel-readout" class="mono">1.00 g</span></label>
+        <input id="fuel-accel" type="range" min="0.1" max="10" step="0.1" value="1">
+      </div>
+
+      <div class="control-group">
+        <label>Propulsion</label>
+        <select id="fuel-propulsion"></select>
+        <div id="fuel-propulsion-note" class="hint hint-inline"></div>
+      </div>
+
+      <div class="control-group">
+        <label>Ship dry mass (kg) <span id="fuel-drymass-readout" class="mono">100,000 kg</span></label>
+        <input id="fuel-drymass" type="range" min="1000" max="10000000" step="1000" value="100000">
+      </div>
+
+      <div class="control-group">
+        <label>Trip type</label>
+        <div class="radio-row">
+          <label class="radio-option"><input type="radio" name="fuel-trip" value="1"> Flyby (1 burn)</label>
+          <label class="radio-option"><input type="radio" name="fuel-trip" value="2" checked> Arrive at rest</label>
+          <label class="radio-option"><input type="radio" name="fuel-trip" value="4"> Round trip</label>
+        </div>
+      </div>
+    </aside>
+
+    <div class="panel panel-fuel-results">
+      <div class="panel-header"><h2>Results</h2></div>
+      <div class="fuel-results-grid" id="fuel-results"></div>
+
+      <div class="equation-block">
+        <div class="equation">
+          M₀ / M_f = ((1 + β) / (1 − β))^(c / (2·v_ex))
+        </div>
+        <div class="equation-sub">
+          Full trip ratio = (single-burn ratio)<sup id="fuel-exponent">2</sup>
+          &nbsp;·&nbsp; M_fuel = M_dry · (ratio − 1)
+        </div>
+      </div>
+    </div>
+
+    <div class="panel panel-fuel-chart">
+      <div class="panel-header">
+        <h2>Mass ratio vs peak β</h2>
+        <div class="hint">log y-axis. Each line = one propellant. Your current operating point is marked.</div>
+      </div>
+      <canvas class="graph-canvas graph-canvas-large" id="fuel-chart"></canvas>
+      <div class="equation">
+        M₀/M_f is squared for accel+decel trips, and to the 4th for round trips.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- scripts -->
+<script src="src/physics.js"></script>
+<script src="src/scenarios.js"></script>
+<script src="src/spaceView.js"></script>
+<script src="src/graphs.js"></script>
+<script src="src/fuel.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>

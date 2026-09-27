@@ -1,0 +1,10 @@
+# Claude build notes (kept on the laptop, not published)
+preferences.md
+instructions.txt
+
+# Claude / editor files
+.claude/
+CLAUDE.md
+.vscode/
+Thumbs.db
+desktop.ini
