@@ -372,7 +372,7 @@
         const destName = app.scene.locations.find(l => l.id === r.destId)?.name || '?';
         row.innerHTML = `
           <span class="object-name"><span class="dot" style="background:${r.color};color:${r.color}"></span>${escapeHtml(r.name)}
-          <span style="opacity:0.5;margin-left:6px;">${originName} → ${destName}, ${r.aG.toFixed(1)}g</span></span>
+          <span style="opacity:0.5;margin-left:6px;">${escapeHtml(originName)} → ${escapeHtml(destName)}, ${r.aG.toFixed(1)}g</span></span>
           <button class="object-del" title="Remove">✕</button>
         `;
         row.querySelector('.object-del').addEventListener('click', () => {

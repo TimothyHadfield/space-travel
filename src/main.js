@@ -28,6 +28,10 @@
       for (const b of navLinks) {
         b.classList.toggle('active', b.dataset.view === name);
       }
+      // Start each view at its top. The page scrolls inside <body>, so a card
+      // tapped lower on Home would otherwise open the next view part-way down.
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
       // Trigger redraws for views with canvases that need current size
       if (name === 'space' && view) {
         requestAnimationFrame(() => {

@@ -214,7 +214,9 @@
       const { width: W, height: H, viewport: vp } = state;
       // Choose grid spacing so we get ~6–10 lines across the viewport
       const span = W / vp.zoom;
-      const targetLines = 8;
+      // ~8 lines on wide canvases; fewer on narrow (phone) canvases so the
+      // axis labels (~50px wide) don't run into each other.
+      const targetLines = Math.min(8, Math.max(3, Math.floor(W / 90)));
       const rawStep = span / targetLines;
       const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
       const norm = rawStep / mag;
