@@ -28,10 +28,6 @@
       for (const b of navLinks) {
         b.classList.toggle('active', b.dataset.view === name);
       }
-      // Start each view at its top. The page scrolls inside <body>, so a card
-      // tapped lower on Home would otherwise open the next view part-way down.
-      document.body.scrollTop = 0;
-      document.documentElement.scrollTop = 0;
       // Trigger redraws for views with canvases that need current size
       if (name === 'space' && view) {
         requestAnimationFrame(() => {
@@ -48,9 +44,16 @@
       }
     }
 
-    navLinks.forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+    // Start each view at its top. The page scrolls inside <body>, so a card
+    // tapped lower on Home would otherwise open the next view part-way down.
+    function goToView(name) {
+      setView(name);
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+    }
+    navLinks.forEach(b => b.addEventListener('click', () => goToView(b.dataset.view)));
     document.querySelectorAll('[data-goto]').forEach(b => {
-      b.addEventListener('click', () => setView(b.dataset.goto));
+      b.addEventListener('click', () => goToView(b.dataset.goto));
     });
 
     // ==========================================================
@@ -104,7 +107,9 @@
     function drawAll() {
       view.update(app.scene, app.currentTime);
       view.setSelected(app.selectedId);
-      graphs.render(app.scene, app.currentTime, app.perspectiveId);
+      // Graphs are only visible in the Data view (setView redraws them on entry),
+      // so skip them otherwise, e.g. on every animation frame while playing.
+      if (activeView === 'data') graphs.render(app.scene, app.currentTime, app.perspectiveId);
       ui.refreshSelection();
       ui.updateReadouts();
     }
