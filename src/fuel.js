@@ -67,34 +67,59 @@
     }
 
     // ---------- Recompute ----------
+    // Trip timing for the chosen trip type. Returns the Earth-frame and
+    // on-board times and the peak β the ship actually reaches.
+    //   flyby (1 burn):  accelerate to β, then coast past the target (no braking)
+    //   stop  (2 burns): accelerate, coast, brake to rest at the target
+    //   round (4 burns): the stop trip out and the same trip back
+    function tripTiming(aNat, D, beta, maneuvers) {
+      const gammaTarget = 1 / Math.sqrt(1 - beta * beta);
+      const dAccel = (1 / aNat) * (gammaTarget - 1);  // ly in launch frame
+      let tTotal, tauTotal, betaPeak, feasible;
+      if (maneuvers === 1) {
+        if (dAccel >= D) {
+          // Target β not reached before arrival: accelerate the whole way.
+          const g = 1 + aNat * D;
+          tTotal = Math.sqrt(g * g - 1) / aNat;
+          tauTotal = Math.acosh(g) / aNat;
+          betaPeak = Math.sqrt(1 - 1 / (g * g));
+          feasible = 'partial';
+        } else {
+          const tCoast = (D - dAccel) / beta;
+          tTotal = gammaTarget * beta / aNat + tCoast;
+          tauTotal = Math.atanh(beta) / aNat + tCoast / gammaTarget;
+          betaPeak = beta;
+          feasible = 'ok';
+        }
+      } else {
+        // Can't reach the target β in half the distance at this accel?
+        // Then do a no-coast trip; peak β will be lower than requested.
+        const partial = 2 * dAccel >= D;
+        const trip = partial ? P.planNoCoastTrip(aNat, D) : P.planCoastTrip(aNat, D, beta);
+        const legs = maneuvers === 4 ? 2 : 1;
+        tTotal = trip.tTotal * legs;
+        tauTotal = trip.tauTotal * legs;
+        betaPeak = trip.vMax;
+        feasible = partial ? 'partial' : 'ok';
+      }
+      return { tTotal, tauTotal, betaPeak, feasible };
+    }
+
     function recompute() {
       const prop = propulsionOf(state.propulsionId);
-      const v = state.beta * P.C_MPS;
+      const aNat = state.aG * P.G_IN_NATURAL;        // ly/yr²
+      const D = state.distLy;                         // ly
+      const { tTotal, tauTotal, betaPeak, feasible } =
+        tripTiming(aNat, D, state.beta, state.maneuvers);
+      // Fuel and energy use the peak speed the ship actually reaches.
+      state.betaPeak = betaPeak;
+      const v = betaPeak * P.C_MPS;
       const R_single = P.massRatioRelativistic(v, prop.v_ex);
       const R_trip = Math.pow(R_single, state.maneuvers);
       const fuel = P.fuelMass(state.dryMassKg, R_trip);
       const wetMass = state.dryMassKg + fuel;
       const Ekin = P.kineticEnergy(state.dryMassKg, v);
-
-      // Trip time (best case assuming we can hit β given accel and distance)
-      const aNat = state.aG * P.G_IN_NATURAL;        // ly/yr²
-      const D = state.distLy;                         // ly
-      const gammaPeak = 1 / Math.sqrt(1 - state.beta * state.beta);
-      const dAccel = (1 / aNat) * (gammaPeak - 1);    // ly in launch frame
-      let tTotal, tauTotal, feasible;
-      if (2 * dAccel >= D) {
-        // Can't reach the target β in half the distance at this accel.
-        // Do a no-coast trip at the given accel; peak β will be lower than requested.
-        const trip = P.planNoCoastTrip(aNat, D);
-        tTotal = trip.tTotal;
-        tauTotal = trip.tauTotal;
-        feasible = 'partial';
-      } else {
-        const trip = P.planCoastTrip(aNat, D, state.beta);
-        tTotal = trip.tTotal;
-        tauTotal = trip.tauTotal;
-        feasible = 'ok';
-      }
+      const gammaPeak = 1 / Math.sqrt(1 - betaPeak * betaPeak);
 
       renderResults({
         R_single, R_trip, fuel, wetMass, Ekin,
@@ -277,7 +302,8 @@
 
       // Operating point marker
       const prop = propulsionOf(state.propulsionId);
-      const R_trip = Math.pow(P.massRatioRelativistic(state.beta * P.C_MPS, prop.v_ex), state.maneuvers);
+      const betaMark = state.betaPeak ?? state.beta;
+      const R_trip = Math.pow(P.massRatioRelativistic(betaMark * P.C_MPS, prop.v_ex), state.maneuvers);
       const logR = Math.log10(R_trip);
       if (isFinite(logR)) {
         const y = Math.max(yMinLog, Math.min(yMaxLog, logR));
@@ -285,7 +311,7 @@
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(xToPx(state.beta), yToPx(y), 6, 0, Math.PI * 2);
+        ctx.arc(xToPx(betaMark), yToPx(y), 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
