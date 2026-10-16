@@ -104,10 +104,10 @@ a·t/c       = sinh(aτ/c)
 
 ### 3.4 Quick numeric example (1 g acceleration)
 In light-years and years, `a ≈ 1.032 ly/yr²`:
-- After τ = 1 yr proper time: v ≈ 0.77c, γ ≈ 1.54, distance ≈ 0.56 ly
-- After τ = 2 yr: v ≈ 0.97c, γ ≈ 3.76, distance ≈ 2.90 ly
-- After τ = 5 yr: v ≈ 0.99993c, γ ≈ 75, distance ≈ 83 ly
-- After τ = 10 yr: γ ≈ 11013, distance ≈ 10600 ly (crosses the galaxy!)
+- After τ = 1 yr proper time: v ≈ 0.77c, γ ≈ 1.58, distance ≈ 0.56 ly
+- After τ = 2 yr: v ≈ 0.97c, γ ≈ 4.0, distance ≈ 2.91 ly
+- After τ = 5 yr: v ≈ 0.99993c, γ ≈ 87, distance ≈ 83 ly
+- After τ = 10 yr: γ ≈ 15200, distance ≈ 14700 ly (about 15% of the way across the galaxy)
 
 ---
 
