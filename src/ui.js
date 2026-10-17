@@ -11,6 +11,52 @@
   const S = NS.Scenarios;
   const P = NS.Physics;
 
+  // In-page replacement for window.alert(): message + OK button.
+  // OK, Enter, Escape or a backdrop tap close it. Returns a Promise.
+  function appAlert(message) {
+    return new Promise((resolve) => {
+      const prevFocus = document.activeElement;
+      const backdrop = document.createElement('div');
+      backdrop.className = 'app-dialog-backdrop';
+      const box = document.createElement('div');
+      box.className = 'app-dialog';
+      box.setAttribute('role', 'alertdialog');
+      box.setAttribute('aria-modal', 'true');
+      const msg = document.createElement('p');
+      msg.className = 'app-dialog-msg';
+      msg.textContent = message;
+      const row = document.createElement('div');
+      row.className = 'btn-row';
+      const ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'btn-primary';
+      ok.textContent = 'OK';
+      row.appendChild(ok);
+      box.append(msg, row);
+      backdrop.appendChild(box);
+
+      function close() {
+        document.removeEventListener('keydown', onKey, true);
+        backdrop.remove();
+        if (prevFocus && prevFocus.focus) prevFocus.focus();
+        resolve();
+      }
+      function onKey(e) {
+        if (e.key === 'Enter' || e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          close();
+        }
+      }
+      ok.addEventListener('click', close);
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(backdrop);
+      ok.focus();
+    });
+  }
+  NS.appAlert = appAlert;
+
   function init(app, handlers) {
     const $ = (id) => document.getElementById(id);
 
@@ -262,7 +308,7 @@
     // ---------- Add Rocket ----------
     el.addRocket.addEventListener('click', () => {
       if (app.scene.locations.length < 2) {
-        alert('Need at least 2 locations first.');
+        appAlert('Need at least 2 locations first.');
         return;
       }
       if (!form.rkt.hidden) { closeAllForms(); return; }
@@ -306,7 +352,7 @@
 
     // ---------- Send Message ----------
     el.sendMessage.addEventListener('click', () => {
-      if (app.scene.locations.length < 1) { alert('Need a location first.'); return; }
+      if (app.scene.locations.length < 1) { appAlert('Need a location first.'); return; }
       if (!form.msg.hidden) { closeAllForms(); return; }
       populateSenderSelect(msgInputs.from);
       populateLocationSelect(msgInputs.to);

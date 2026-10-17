@@ -672,6 +672,63 @@ body {
   .panel-fuel-chart   { grid-column: 1; grid-row: 3; }
 }
 
+/* Phone: brand on its own line, nav links in one row (scrolls sideways if needed) */
+@media (max-width: 600px) {
+  .top-nav {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px;
+  }
+  .nav-brand {
+    white-space: nowrap;
+  }
+  .nav-links {
+    flex: 1 1 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    padding: 8px 12px;
+  }
+}
+
+/* ---------- In-page notice (replaces browser alert) ---------- */
+.app-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 5, 16, 0.55);
+}
+.app-dialog {
+  background: rgba(10, 10, 30, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+  padding: 18px 20px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 340px;
+}
+.app-dialog-msg {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e8ecff;
+  margin-bottom: 16px;
+}
+.app-dialog .btn-row { margin-bottom: 0; justify-content: flex-end; }
+.app-dialog .btn-primary { flex: 0 0 auto; min-width: 90px; }
+
 /* ---------- Scrollbars ---------- */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
